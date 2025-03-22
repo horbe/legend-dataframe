@@ -1246,7 +1246,19 @@ function meta::pure::dsl::dataframe::filter(source: TableReference[1], condition
 
 function meta::pure::dsl::dataframe::project(source: TableReference[1], columns: String[*]): DataFrame[1]
 {
-   let columnsList = $columns->map(c | ^Column(name = $c, expression = ^ColumnReference(columnName = $c)));
+   let columnsList = $columns->map(c | 
+      if($c->contains(' as '))
+      {
+         let parts = $c->split(' as ');
+         let colName = $parts->at(0)->trim();
+         let alias = $parts->at(1)->trim();
+         ^Column(name = $alias, expression = ^ColumnReference(columnName = $colName), alias = $alias);
+      }
+      else
+      {
+         ^Column(name = $c, expression = ^ColumnReference(columnName = $c));
+      }
+   );
    ^DataFrame(columns = $columnsList, source = $source);
 }
 
@@ -1259,7 +1271,19 @@ function meta::pure::dsl::dataframe::filter(df: DataFrame[1], condition: Functio
 
 function meta::pure::dsl::dataframe::project(df: DataFrame[1], columns: String[*]): DataFrame[1]
 {
-   let columnsList = $columns->map(c | ^Column(name = $c, expression = ^ColumnReference(columnName = $c)));
+   let columnsList = $columns->map(c | 
+      if($c->contains(' as '))
+      {
+         let parts = $c->split(' as ');
+         let colName = $parts->at(0)->trim();
+         let alias = $parts->at(1)->trim();
+         ^Column(name = $alias, expression = ^ColumnReference(columnName = $colName), alias = $alias);
+      }
+      else
+      {
+         ^Column(name = $c, expression = ^ColumnReference(columnName = $c));
+      }
+   );
    ^$df(columns = $columnsList);
 }
 
@@ -1295,11 +1319,26 @@ function meta::pure::dsl::dataframe::filter(source: DataSource[1], filterFn: Fun
    );
 }
 
-// Flexible project function
+// Flexible project function with lambda expressions
 function meta::pure::dsl::dataframe::project(source: DataSource[1], columnExpressions: Function<{Any[1]->Any[1]}>[*], columnNames: String[*]): DataFrame[1]
 {
-   // This is a simplified implementation
-   let columns = $columnNames->map(n | ^Column(name = $n, expression = ^ColumnReference(columnName = $n)));
+   // Implementation with lambda expressions
+   let columns = range($columnExpressions->size())->map(i | 
+      let expr = $columnExpressions->at($i);
+      let name = if($i < $columnNames->size(), |$columnNames->at($i), |'column' + $i);
+      
+      if($name->contains(' as '))
+      {
+         let parts = $name->split(' as ');
+         let colName = $parts->at(0)->trim();
+         let alias = $parts->at(1)->trim();
+         ^Column(name = $alias, expression = ^FunctionExpression(function = $expr), alias = $alias);
+      }
+      else
+      {
+         ^Column(name = $name, expression = ^FunctionExpression(function = $expr));
+      }
+   );
    
    ^DataFrame(
       source = $source,
