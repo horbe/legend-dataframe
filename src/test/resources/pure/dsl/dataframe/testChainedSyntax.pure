@@ -1,0 +1,38 @@
+import meta::pure::dsl::dataframe::*;
+import meta::pure::dsl::dataframe::metamodel::*;
+import meta::pure::dsl::duckdb::*;
+
+function meta::pure::dsl::dataframe::test::testChainedSyntax(): Boolean[1]
+{
+   // Legacy syntax
+   let legacyDF = select([
+      as(col('id'), 'id'),
+      as(col('name'), 'name')
+   ])->from(table('customers'));
+   
+   // New chained syntax
+   let chainedDF = all('customers')->filter('id', 1)->project(['id', 'name']);
+   
+   // Another example with the new syntax
+   let chainedDF2 = from('customers')->filter('id', 1)->project(['id', 'name']);
+   
+   // Compare generated SQL for all approaches to ensure they're equivalent
+   let sql1 = generateDuckDBSQL($legacyDF);
+   let sql2 = generateDuckDBSQL($chainedDF);
+   let sql3 = generateDuckDBSQL($chainedDF2);
+   
+   assertEquals($sql1, $sql2) && assertEquals($sql1, $sql3);
+}
+
+function meta::pure::dsl::dataframe::test::assertEquals(a: String[1], b: String[1]): Boolean[1]
+{
+   if($a == $b)
+   {
+      true;
+   }
+   else
+   {
+      print('Expected: ' + $a + '\nActual: ' + $b);
+      false;
+   }
+}

@@ -120,6 +120,24 @@ let postgresSQL = $df->toPostgresSQL();
 let sql = $df->toSQL(DatabaseType.SNOWFLAKE);
 ```
 
+### New Chained Syntax
+
+The DSL now supports a more functional chained syntax for query construction that is similar to legend-engine's approach:
+
+```pure
+// Legacy syntax
+let legacyDF = select([
+   as(col('id'), 'id'),
+   as(col('name'), 'name')
+])->from(table('customers'));
+
+// New chained syntax
+let chainedDF = all('customers')->filter('id', 1)->project(['id', 'name']);
+
+// Alternative chained syntax
+let chainedDF2 = from('customers')->filter('id', 1)->project(['id', 'name']);
+```
+
 ## License
 
 Apache License 2.0
