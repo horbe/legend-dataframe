@@ -1292,15 +1292,23 @@ function meta::pure::dsl::dataframe::filter(source: DataSource[1], columnName: S
    );
 }
 
-// Complex filter function with lambda
+// Complex filter function with lambda and type checking
 function meta::pure::dsl::dataframe::filter(source: DataSource[1], filterFn: Function<{Any[1]->Boolean[1]}>[1]): DataFrame[1]
 {
-   // This is a simplified placeholder for lambda processing
-   // In a full implementation, we would need to interpret the lambda expression
+   // Create function expression with type information
+   let functionExpr = ^FunctionExpression(function = $filterFn);
+   let typeInfo = meta::pure::dsl::dataframe::typeInference::inferFunctionType($functionExpr);
+   
+   // Validate that the filter function returns Boolean
+   if($typeInfo->isNotEmpty() && $typeInfo->toOne().type != Boolean,
+      | fail('Filter function must return Boolean type, but returns ' + $typeInfo->toOne().type->toString());,
+      | []
+   );
+   
    let condition = ^BinaryOperation(
       left = ^LiteralExpression(value = true),
       operator = BinaryOperator.EQUALS,
-      right = ^LiteralExpression(value = true)
+      right = $functionExpr
    );
    
    ^DataFrame(
@@ -1309,15 +1317,22 @@ function meta::pure::dsl::dataframe::filter(source: DataSource[1], filterFn: Fun
    );
 }
 
-// Flexible project function with lambda expressions
+// Flexible project function with lambda expressions and type checking
 function meta::pure::dsl::dataframe::project(source: DataSource[1], columnExpressions: Function<{Any[1]->Any[1]}>[*], columnNames: String[*]): DataFrame[1]
 {
-   // Implementation with lambda expressions
+   // Implementation with lambda expressions and type checking
    let columns = range($columnExpressions->size())->map(i | 
       let expr = $columnExpressions->at($i);
       let name = if($i < $columnNames->size(), |$columnNames->at($i), |'column' + $i);
       
-      ^Column(name = $name, expression = ^FunctionExpression(function = $expr));
+      // Infer return type from function expression
+      let functionExpr = ^FunctionExpression(function = $expr);
+      let typeInfo = meta::pure::dsl::dataframe::typeInference::inferFunctionType($functionExpr);
+      
+      if($typeInfo->isNotEmpty(),
+         | ^Column(name = $name, expression = ^$functionExpr(returnType = $typeInfo->toOne().type)),
+         | ^Column(name = $name, expression = $functionExpr)
+      );
    );
    
    ^DataFrame(

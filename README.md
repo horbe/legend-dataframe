@@ -138,6 +138,19 @@ let chainedDF = all('customers')->filter('id', 1)->project(['id', 'name']);
 let chainedDF2 = from('customers')->filter('id', 1)->project(['id', 'name']);
 ```
 
+### Type Checking
+
+The DSL now includes runtime type checking to ensure that functions applied to columns are compatible with the column's data type:
+
+```pure
+// Type-safe operations - automatically validates that function return types match expected column types
+let typeSafeDF = all('customers')
+   ->filter(x|$x.age > 18)            // Validates that filter returns Boolean
+   ->project([x|$x.id + 1], ['id_plus_one']);  // Infers return type (Integer)
+```
+
+Type information is propagated through the query chain, allowing for validation at each step.
+
 ## License
 
 Apache License 2.0

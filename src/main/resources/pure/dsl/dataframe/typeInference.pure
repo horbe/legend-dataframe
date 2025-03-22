@@ -1,0 +1,71 @@
+import meta::pure::dsl::dataframe::*;
+import meta::pure::dsl::dataframe::metamodel::*;
+
+// Type inference utilities for DataFrame DSL
+Class meta::pure::dsl::dataframe::typeInference::TypeInfo
+{
+   type : Type[1];
+   multiplicity : Multiplicity[1];
+}
+
+function meta::pure::dsl::dataframe::typeInference::inferExpressionType(expression: Expression[1]): TypeInfo[0..1]
+{
+   $expression->match([
+      le: LiteralExpression[1] | inferLiteralType($le),
+      cr: ColumnReference[1] | inferColumnReferenceType($cr),
+      fe: FunctionExpression[1] | inferFunctionType($fe),
+      e: Expression[1] | []
+   ]);
+}
+
+function meta::pure::dsl::dataframe::typeInference::inferLiteralType(literalExpr: LiteralExpression[1]): TypeInfo[0..1]
+{
+   let value = $literalExpr.value;
+   $value->match([
+      s: String[1] | ^TypeInfo(type = String, multiplicity = PureOne),
+      i: Integer[1] | ^TypeInfo(type = Integer, multiplicity = PureOne),
+      f: Float[1] | ^TypeInfo(type = Float, multiplicity = PureOne),
+      b: Boolean[1] | ^TypeInfo(type = Boolean, multiplicity = PureOne),
+      d: Date[1] | ^TypeInfo(type = Date, multiplicity = PureOne),
+      a: Any[1] | []
+   ]);
+}
+
+function meta::pure::dsl::dataframe::typeInference::inferColumnReferenceType(colRef: ColumnReference[1]): TypeInfo[0..1]
+{
+   // This would need to be connected to schema information
+   // For now, we'll return unknown type
+   [];
+}
+
+function meta::pure::dsl::dataframe::typeInference::inferFunctionType(funcExpr: FunctionExpression[1]): TypeInfo[0..1]
+{
+   if($funcExpr.function->isNotEmpty(),
+      | let func = $funcExpr.function->toOne();
+        let returnType = $func->functionReturnType();
+        ^TypeInfo(type = $returnType.rawType->toOne(), multiplicity = $returnType.multiplicity);,
+      | []);
+}
+
+function meta::pure::dsl::dataframe::typeInference::validateCompatibleTypes(sourceType: TypeInfo[0..1], targetType: TypeInfo[0..1]): Boolean[1]
+{
+   if($sourceType->isEmpty() || $targetType->isEmpty(),
+      | true, // Unknown types are assumed compatible
+      | let source = $sourceType->toOne();
+        let target = $targetType->toOne();
+        
+        // Check if types are compatible
+        // This is a simplified check - would need more logic for real implementation
+        $source.type == $target.type || 
+        ($source.type == Integer && $target.type == Float) ||
+        ($source.type == Integer && $target.type == Number) ||
+        ($source.type == Float && $target.type == Number)
+   );
+}
+
+function meta::pure::dsl::dataframe::typeInference::validateFunctionApplication(func: FunctionExpression[1], argTypes: TypeInfo[*]): Boolean[1]
+{
+   // This would validate that the function can be applied to the given argument types
+   // For now, return true as this requires detailed function signature information
+   true;
+}

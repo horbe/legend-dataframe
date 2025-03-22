@@ -1,0 +1,34 @@
+import meta::pure::dsl::dataframe::*;
+import meta::pure::dsl::dataframe::metamodel::*;
+import meta::pure::dsl::dataframe::typeInference::*;
+import meta::pure::dsl::duckdb::*;
+
+function meta::pure::dsl::dataframe::test::testTypeChecking(): Boolean[1]
+{
+   // Test type inference
+   let intLiteral = ^LiteralExpression(value = 1);
+   let intType = inferExpressionType($intLiteral);
+   assertEquals($intType->toOne().type, Integer);
+   
+   // Test function type inference
+   let lambdaFunc = {x:Any[1]|$x->toString()};
+   let funcExpr = ^FunctionExpression(function = $lambdaFunc);
+   let funcType = inferFunctionType($funcExpr);
+   assertEquals($funcType->toOne().type, String);
+   
+   // Test project with type checking
+   let projectDF = all('customers')->project([x|$x.id + 1], ['id_plus_one']);
+   assert($projectDF.columns->at(0).expression->cast(@FunctionExpression).returnType == Integer);
+   
+   // Test filter with type checking
+   let filterDF = all('customers')->filter(x|$x.age > 18);
+   
+   print('Type checking tests passed');
+   true;
+}
+
+function meta::pure::dsl::dataframe::test::assertEquals(actual: Any[1], expected: Any[1]): Boolean[1]
+{
+   assert($actual == $expected, 'Expected: ' + $expected->toString() + ', but got: ' + $actual->toString());
+   true;
+}
