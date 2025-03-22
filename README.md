@@ -1,10 +1,10 @@
 # Legend DataFrames
 
-A DSL in Pure language for modeling SELECT statements that work with Snowflake, DuckDB, BigQuery, Databricks, and Redshift.
+A DSL in Pure language for modeling SELECT statements that work with Snowflake, DuckDB, BigQuery, Databricks, Redshift, and Postgres.
 
 ## Overview
 
-This project implements a Domain Specific Language (DSL) in Pure language for modeling SQL SELECT statements that can be executed against Snowflake, DuckDB, BigQuery, Databricks, and Redshift databases. The DSL provides a unified interface for writing queries that can be translated to the appropriate SQL syntax for each database system.
+This project implements a Domain Specific Language (DSL) in Pure language for modeling SQL SELECT statements that can be executed against Snowflake, DuckDB, BigQuery, Databricks, Redshift, and Postgres databases. The DSL provides a unified interface for writing queries that can be translated to the appropriate SQL syntax for each database system.
 
 ## Features
 
@@ -108,11 +108,16 @@ let runningTotal = $df
 ### SQL Generation
 
 ```pure
-// Generate DuckDB SQL
-let duckSQL = $df->generateDuckDBSQL();
+// Generate SQL for different database systems
+let duckSQL = $df->toDuckDBSQL();
+let snowflakeSQL = $df->toSnowflakeSQL();
+let bigQuerySQL = $df->toBigQuerySQL();
+let databricksSQL = $df->toDatabricksSQL();
+let redshiftSQL = $df->toRedshiftSQL();
+let postgresSQL = $df->toPostgresSQL();
 
-// Generate Snowflake SQL
-let snowflakeSQL = $df->generateSnowflakeSQL();
+// Generic SQL generation with database parameter
+let sql = $df->toSQL(DatabaseType.SNOWFLAKE);
 ```
 
 ## License
