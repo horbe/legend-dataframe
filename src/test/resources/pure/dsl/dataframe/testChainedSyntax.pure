@@ -16,28 +16,23 @@ function meta::pure::dsl::dataframe::test::testChainedSyntax(): Boolean[1]
    // Another example with the new syntax
    let chainedDF2 = from('customers')->filter('id', 1)->project(['id', 'name']);
    
-   // Example with column renaming
-   let chainedDFWithRename = all('customers')->filter('id', 1)->project(['id as customer_id', 'name']);
-   
    // Example with lambda expressions
    let chainedDFWithLambda = all('customers')->project([x|$x.id, x|$x.name], ['id', 'name']);
    
-   // Example with lambda expressions and column renaming
-   let chainedDFWithLambdaAndRename = all('customers')->project([x|$x.id], ['customer_id as user_id']);
+   // Example with custom column names
+   let chainedDFWithCustomNames = all('customers')->project([x|$x.id], ['user_id']);
    
    // Compare generated SQL for all approaches to ensure they're equivalent
    let sql1 = generateDuckDBSQL($legacyDF);
    let sql2 = generateDuckDBSQL($chainedDF);
    let sql3 = generateDuckDBSQL($chainedDF2);
    
-   // Test column renaming and lambda expressions
-   let sql4 = generateDuckDBSQL($chainedDFWithRename);
-   let sql5 = generateDuckDBSQL($chainedDFWithLambda);
-   let sql6 = generateDuckDBSQL($chainedDFWithLambdaAndRename);
+   // Test lambda expressions with different column names
+   let sql4 = generateDuckDBSQL($chainedDFWithLambda);
+   let sql5 = generateDuckDBSQL($chainedDFWithCustomNames);
    
-   print('SQL with renamed columns: ' + $sql4);
-   print('SQL with lambda expressions: ' + $sql5);
-   print('SQL with lambda expressions and renamed columns: ' + $sql6);
+   print('SQL with lambda expressions: ' + $sql4);
+   print('SQL with custom column names: ' + $sql5);
    
    assertEquals($sql1, $sql2) && assertEquals($sql1, $sql3);
 }

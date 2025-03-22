@@ -1247,17 +1247,7 @@ function meta::pure::dsl::dataframe::filter(source: TableReference[1], condition
 function meta::pure::dsl::dataframe::project(source: TableReference[1], columns: String[*]): DataFrame[1]
 {
    let columnsList = $columns->map(c | 
-      if($c->contains(' as '))
-      {
-         let parts = $c->split(' as ');
-         let colName = $parts->at(0)->trim();
-         let alias = $parts->at(1)->trim();
-         ^Column(name = $alias, expression = ^ColumnReference(columnName = $colName), alias = $alias);
-      }
-      else
-      {
-         ^Column(name = $c, expression = ^ColumnReference(columnName = $c));
-      }
+      ^Column(name = $c, expression = ^ColumnReference(columnName = $c))
    );
    ^DataFrame(columns = $columnsList, source = $source);
 }
@@ -1327,17 +1317,7 @@ function meta::pure::dsl::dataframe::project(source: DataSource[1], columnExpres
       let expr = $columnExpressions->at($i);
       let name = if($i < $columnNames->size(), |$columnNames->at($i), |'column' + $i);
       
-      if($name->contains(' as '))
-      {
-         let parts = $name->split(' as ');
-         let colName = $parts->at(0)->trim();
-         let alias = $parts->at(1)->trim();
-         ^Column(name = $alias, expression = ^FunctionExpression(function = $expr), alias = $alias);
-      }
-      else
-      {
-         ^Column(name = $name, expression = ^FunctionExpression(function = $expr));
-      }
+      ^Column(name = $name, expression = ^FunctionExpression(function = $expr));
    );
    
    ^DataFrame(
