@@ -33,9 +33,13 @@ function meta::pure::dsl::dataframe::typeInference::inferLiteralType(literalExpr
 
 function meta::pure::dsl::dataframe::typeInference::inferColumnReferenceType(colRef: ColumnReference[1]): TypeInfo[0..1]
 {
-   // This would need to be connected to schema information
-   // For now, we'll return unknown type
-   [];
+   // Try to get type information from schema if available
+   let tableRef = $colRef.tableReference;
+   if($tableRef->isNotEmpty(),
+      | let tableName = $tableRef->toOne().tableName;
+        inferColumnReferenceTypeWithSchema($colRef, $tableName);,
+      | []
+   );
 }
 
 function meta::pure::dsl::dataframe::typeInference::inferFunctionType(funcExpr: FunctionExpression[1]): TypeInfo[0..1]

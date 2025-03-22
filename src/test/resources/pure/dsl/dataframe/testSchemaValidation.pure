@@ -1,0 +1,83 @@
+import meta::pure::dsl::dataframe::*;
+import meta::pure::dsl::dataframe::metamodel::*;
+import meta::pure::dsl::dataframe::typeInference::*;
+import meta::pure::dsl::duckdb::*;
+
+function meta::pure::dsl::dataframe::test::testSchemaValidation(): Boolean[1]
+{
+   // Define a schema for customers table
+   let customerSchema = ^TableSchema<Any>(
+      name = 'customers',
+      columns = newMap([
+         pair('id', Integer), 
+         pair('name', String), 
+         pair('email', String),
+         pair('age', Integer),
+         pair('balance', Float)
+      ])
+   );
+   
+   // Register the schema
+   registerSchema($customerSchema);
+   
+   // Test column type inference with schema
+   let nameColRef = ^ColumnReference(columnName = 'name', tableReference = ^TableReference(tableName = 'customers'));
+   let nameTypeInfo = inferColumnReferenceType($nameColRef);
+   
+   assert($nameTypeInfo->isNotEmpty(), 'Type info should be available for name column');
+   assert($nameTypeInfo->toOne().type == String, 'Name column should be of type String');
+   
+   // Test numeric column type inference
+   let ageColRef = ^ColumnReference(columnName = 'age', tableReference = ^TableReference(tableName = 'customers'));
+   let ageTypeInfo = inferColumnReferenceType($ageColRef);
+   
+   assert($ageTypeInfo->isNotEmpty(), 'Type info should be available for age column');
+   assert($ageTypeInfo->toOne().type == Integer, 'Age column should be of type Integer');
+   
+   // Test validation of aggregation functions with schema
+   let sumFuncExpr = ^FunctionExpression(functionName = 'sum');
+   
+   // This should fail - sum on string column
+   assertFails({| validateFunctionApplication($sumFuncExpr, [$nameTypeInfo->toOne()])}, 
+               'Cannot apply numeric aggregation function \'sum\' to string column');
+   
+   // This should succeed - sum on numeric column
+   assert(validateFunctionApplication($sumFuncExpr, [$ageTypeInfo->toOne()]), 
+          'Sum should be valid on numeric column');
+   
+   // Test with table reference and schema
+   let customersTable = tableWithSchema('customers', $customerSchema);
+   
+   // Create a test DataFrame with schema validation
+   let df = ^DataFrame(
+      source = $customersTable,
+      columns = [
+         ^Column(name = 'id', expression = ^ColumnReference(columnName = 'id', tableReference = $customersTable)),
+         ^Column(name = 'name', expression = ^ColumnReference(columnName = 'name', tableReference = $customersTable))
+      ]
+   );
+   
+   print('Schema validation tests passed');
+   true;
+}
+
+function meta::pure::dsl::dataframe::test::assertFails(func: Function<{->Any[*]}>[1], expectedMessage: String[1]): Boolean[1]
+{
+   let failed = false;
+   let message = '';
+   
+   try
+   {
+      $func->eval();
+   }
+   catch(e)
+   {
+      $failed = true;
+      $message = $e.message;
+   }
+   
+   assert($failed, 'Expected function to fail but it succeeded');
+   assert($message->contains($expectedMessage), 'Expected error message to contain: "' + $expectedMessage + '" but got: "' + $message + '"');
+   
+   true;
+}

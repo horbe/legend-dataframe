@@ -1,0 +1,70 @@
+import meta::pure::dsl::dataframe::*;
+import meta::pure::dsl::dataframe::metamodel::*;
+import meta::pure::dsl::dataframe::typeInference::*;
+
+// Schema definition for tables
+Class meta::pure::dsl::dataframe::TableSchema<T>
+{
+   name : String[1];
+   columns : Map<String, Type>[1];
+}
+
+// Schema registry to store and retrieve table schemas
+Class meta::pure::dsl::dataframe::SchemaRegistry
+{
+   schemas : Map<String, TableSchema<Any>>[1];
+}
+
+// Global schema registry instance
+function meta::pure::dsl::dataframe::getSchemaRegistry(): SchemaRegistry[1]
+{
+   let registry = ^SchemaRegistry(schemas = newMap([]));
+   $registry;
+}
+
+// Register a schema
+function meta::pure::dsl::dataframe::registerSchema(schema: TableSchema<Any>[1]): Boolean[1]
+{
+   let registry = getSchemaRegistry();
+   let updatedSchemas = $registry.schemas->put($schema.name, $schema);
+   ^$registry(schemas = $updatedSchemas);
+   true;
+}
+
+// Get schema for a table
+function meta::pure::dsl::dataframe::getTableSchema(tableName: String[1]): TableSchema<Any>[0..1]
+{
+   let registry = getSchemaRegistry();
+   $registry.schemas->get($tableName);
+}
+
+// Get column type from schema
+function meta::pure::dsl::dataframe::getColumnType(tableName: String[1], columnName: String[1]): Type[0..1]
+{
+   let schema = getTableSchema($tableName);
+   if($schema->isEmpty(),
+      | [],
+      | let columns = $schema->toOne().columns;
+        $columns->get($columnName);
+   );
+}
+
+// Enhanced column reference type inference with schema support
+function meta::pure::dsl::dataframe::typeInference::inferColumnReferenceTypeWithSchema(colRef: ColumnReference[1], tableName: String[0..1]): TypeInfo[0..1]
+{
+   if($tableName->isEmpty(),
+      | [],
+      | let columnType = getColumnType($tableName->toOne(), $colRef.columnName);
+        if($columnType->isEmpty(),
+           | [],
+           | ^TypeInfo(type = $columnType->toOne(), multiplicity = PureOne)
+        );
+   );
+}
+
+// Create a table reference with schema information
+function meta::pure::dsl::dataframe::tableWithSchema(tableName: String[1], schema: TableSchema<Any>[1]): TableReference[1]
+{
+   registerSchema($schema);
+   ^TableReference(tableName = $tableName);
+}
