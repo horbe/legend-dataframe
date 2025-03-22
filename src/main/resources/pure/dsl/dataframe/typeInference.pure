@@ -65,7 +65,26 @@ function meta::pure::dsl::dataframe::typeInference::validateCompatibleTypes(sour
 
 function meta::pure::dsl::dataframe::typeInference::validateFunctionApplication(func: FunctionExpression[1], argTypes: TypeInfo[*]): Boolean[1]
 {
-   // This would validate that the function can be applied to the given argument types
-   // For now, return true as this requires detailed function signature information
-   true;
+   // Validate that numeric aggregation functions are not applied to string columns
+   let funcName = $func.functionName;
+   
+   if($funcName == 'sum' || $funcName == 'avg' || $funcName == 'max' || $funcName == 'min')
+   {
+      // Check if any argument is a string
+      let hasStringArg = $argTypes->exists(t | $t.type == String);
+      if($hasStringArg)
+      {
+         fail('Cannot apply numeric aggregation function \'' + $funcName + '\' to string column');
+         false;
+      }
+      else
+      {
+         true;
+      }
+   }
+   else
+   {
+      // For other functions, allow any type for now
+      true;
+   }
 }

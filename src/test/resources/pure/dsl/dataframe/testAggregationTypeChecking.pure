@@ -1,0 +1,60 @@
+import meta::pure::dsl::dataframe::*;
+import meta::pure::dsl::dataframe::metamodel::*;
+import meta::pure::dsl::dataframe::typeInference::*;
+import meta::pure::dsl::duckdb::*;
+
+function meta::pure::dsl::dataframe::test::testAggregationTypeChecking(): Boolean[1]
+{
+   // Test that numeric aggregation functions cannot be applied to string columns
+   
+   // Create a test function expression for sum on a string column
+   let stringColumn = ^ColumnReference(columnName = 'name');
+   let stringTypeInfo = ^TypeInfo(type = String, multiplicity = PureOne);
+   
+   // Test sum function
+   let sumFuncExpr = ^FunctionExpression(functionName = 'sum');
+   assertFails({| validateFunctionApplication($sumFuncExpr, [$stringTypeInfo])}, 'Cannot apply numeric aggregation function \'sum\' to string column');
+   
+   // Test avg function
+   let avgFuncExpr = ^FunctionExpression(functionName = 'avg');
+   assertFails({| validateFunctionApplication($avgFuncExpr, [$stringTypeInfo])}, 'Cannot apply numeric aggregation function \'avg\' to string column');
+   
+   // Test max function
+   let maxFuncExpr = ^FunctionExpression(functionName = 'max');
+   assertFails({| validateFunctionApplication($maxFuncExpr, [$stringTypeInfo])}, 'Cannot apply numeric aggregation function \'max\' to string column');
+   
+   // Test min function
+   let minFuncExpr = ^FunctionExpression(functionName = 'min');
+   assertFails({| validateFunctionApplication($minFuncExpr, [$stringTypeInfo])}, 'Cannot apply numeric aggregation function \'min\' to string column');
+   
+   // Test that numeric aggregation functions can be applied to numeric columns
+   let numericColumn = ^ColumnReference(columnName = 'age');
+   let numericTypeInfo = ^TypeInfo(type = Integer, multiplicity = PureOne);
+   
+   // This should succeed
+   assert(validateFunctionApplication($sumFuncExpr, [$numericTypeInfo]));
+   
+   print('Aggregation type checking tests passed');
+   true;
+}
+
+function meta::pure::dsl::dataframe::test::assertFails(func: Function<{->Any[*]}>[1], expectedMessage: String[1]): Boolean[1]
+{
+   let failed = false;
+   let message = '';
+   
+   try
+   {
+      $func->eval();
+   }
+   catch(e)
+   {
+      $failed = true;
+      $message = $e.message;
+   }
+   
+   assert($failed, 'Expected function to fail but it succeeded');
+   assert($message->contains($expectedMessage), 'Expected error message to contain: "' + $expectedMessage + '" but got: "' + $message + '"');
+   
+   true;
+}
